@@ -22,7 +22,7 @@ public:
       error= true;
       return;
     }
-    protection_request.init(MDL_key::BACKUP, "", "", MDL_BACKUP_STMT,
+    protection_request.init(MDL_key::BACKUP, "", "", MDL_BACKUP_DDL,
                             MDL_EXPLICIT);
     error= thd->mdl_context.acquire_lock(&protection_request, thd->variables.lock_wait_timeout);
     if (error)

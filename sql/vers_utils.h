@@ -17,7 +17,7 @@ public:
   {
     DBUG_ASSERT(thd);
     MDL_request protection_request;
-    if (thd->global_read_lock.can_acquire_protection())
+    if (thd->has_read_only_protection())
     {
       error= true;
       return;

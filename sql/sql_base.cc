@@ -2099,7 +2099,7 @@ retry_share:
       MDL_request protection_request;
       MDL_deadlock_handler mdl_deadlock_handler(ot_ctx);
 
-      if (thd->global_read_lock.can_acquire_protection())
+      if (thd->has_read_only_protection())
       {
         MYSQL_UNBIND_TABLE(table->file);
         tc_release_table(table);
@@ -2246,7 +2246,7 @@ TABLE *find_table_for_mdl_upgrade(THD *thd, const char *db,
     global read lock.
   */
   if (unlikely(!thd->mdl_context.is_lock_owner(MDL_key::BACKUP, "", "",
-                                               MDL_BACKUP_STMT)))
+                                               MDL_BACKUP_DDL)))
   {
     error= ER_TABLE_NOT_LOCKED_FOR_WRITE;
     goto err_exit;
@@ -3977,9 +3977,9 @@ lock_table_names(THD *thd, const DDL_options_st &options,
       by acquiring global intention exclusive lock with statement
       duration.
     */
-    if (thd->global_read_lock.can_acquire_protection())
+    if (thd->has_read_only_protection())
       DBUG_RETURN(TRUE);
-    global_request.init(MDL_key::BACKUP, "", "", MDL_BACKUP_STMT,
+    global_request.init(MDL_key::BACKUP, "", "", MDL_BACKUP_DDL,
                         MDL_STATEMENT);
     mdl_requests.push_front(&global_request);
 
@@ -3996,6 +3996,8 @@ lock_table_names(THD *thd, const DDL_options_st &options,
     if (create_table)
       thd->push_internal_handler(&error_handler);  // Avoid warnings & errors
     bool res= thd->mdl_context.acquire_locks(&mdl_requests, lock_wait_timeout);
+    if (!(flags & MYSQL_OPEN_SKIP_SCOPED_MDL_LOCK))
+      thd->mdl_backup_ticket= global_request.ticket;
     if (create_table)
       thd->pop_internal_handler();
     if (!res)
